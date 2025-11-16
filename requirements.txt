@@ -3,7 +3,7 @@ yapf==0.29.0
 isort==4.3.21
 yacs
 gdown
-tb-nightly
+tensorboard==2.14.0
 future
 scipy
 scikit-learn
@@ -11,6 +11,7 @@ tqdm
 ftfy
 regex
 setuptools==59.5.0
+protobuf==3.20.3
 wilds==1.2.2
 tabulate
 matplotlib
