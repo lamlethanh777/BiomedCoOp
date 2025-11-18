@@ -28,6 +28,9 @@ do
         if [ -d "$DIR" ]; then
             echo "Oops! The results exist at ${DIR} (so skip this job)"
         else
+           # Measure evaluation time
+           EVAL_START=$(date +%s)
+           
            python train.py \
             --root ${DATA} \
             --seed ${SEED} \
@@ -40,6 +43,26 @@ do
             --eval-only \
             TRAINER.BIOMEDCOOP.N_CTX ${NCTX} \
             TRAINER.BIOMEDCOOP.CSC ${CSC} \
-            TRAINER.BIOMEDCOOP.CLASS_TOKEN_POSITION ${CTP}  
+            TRAINER.BIOMEDCOOP.CLASS_TOKEN_POSITION ${CTP}
+           
+           EVAL_END=$(date +%s)
+           EVAL_TIME=$((EVAL_END - EVAL_START))
+           
+           # Log results to CSV
+           LOG_FILE="${DIR}/log.txt"
+           if [ -f "$LOG_FILE" ]; then
+               python log_results.py \
+                   --task few_shot \
+                   --log-file ${LOG_FILE} \
+                   --model ${TRAINER} \
+                   --dataset ${DATASET} \
+                   --shot ${SHOTS} \
+                   --seed ${SEED} \
+                   --eval-time ${EVAL_TIME} \
+                   --checkpoint "${MODEL_DIR}/model.pth.tar-${LOADEP}"
+               echo "Evaluation time for seed ${SEED}: ${EVAL_TIME}s"
+           else
+               echo "Warning: Log file not found at ${LOG_FILE}"
+           fi
         fi
 done

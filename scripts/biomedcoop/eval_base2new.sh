@@ -31,6 +31,9 @@ do
         if [ -d "$DIR" ]; then
             echo "Oops! The results exist at ${DIR} (so skip this job)"
         else
+            # Measure evaluation time
+            EVAL_START=$(date +%s)
+            
             python train.py \
                 --root ${DATA} \
                 --seed ${SEED} \
@@ -42,6 +45,27 @@ do
                 --output-dir ${DIR} \
                 --eval-only \
                 DATASET.SUBSAMPLE_CLASSES ${SUB_TASK}
+            
+            EVAL_END=$(date +%s)
+            EVAL_TIME=$((EVAL_END - EVAL_START))
+            
+            # Log results to CSV
+            LOG_FILE="${DIR}/log.txt"
+            if [ -f "$LOG_FILE" ]; then
+                python log_results.py \
+                    --task base2new \
+                    --log-file ${LOG_FILE} \
+                    --model ${TRAINER} \
+                    --dataset ${DATASET} \
+                    --shot ${SHOTS} \
+                    --seed ${SEED} \
+                    --eval-time ${EVAL_TIME} \
+                    --checkpoint "${MODEL_DIR}/model.pth.tar-${LOADEP}" \
+                    --subtask ${SUB_TASK}
+                echo "Evaluation time for seed ${SEED} (${SUB_TASK}): ${EVAL_TIME}s"
+            else
+                echo "Warning: Log file not found at ${LOG_FILE}"
+            fi
         fi
         done
 done
