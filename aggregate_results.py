@@ -67,36 +67,61 @@ def read_csv(csv_file):
 def aggregate_few_shot_by_shots(data, ci95=False):
     """
     Aggregate few-shot results grouped by shot values.
-    For each shot value, compute mean ± std across all datasets and seeds.
+    For each shot value, first compute std per (dataset, shot), then average across datasets.
+    This follows the paper's reproduction methodology.
     """
-    # Group by shots
-    grouped = defaultdict(lambda: defaultdict(list))
+    # First, group by (dataset, shot) to compute real std across seeds
+    dataset_shot_groups = defaultdict(lambda: defaultdict(list))
     
     for row in data:
-        shot = row['shot']
-        grouped[shot]['accuracy'].append(row['accuracy'])
+        key = (row['dataset'], row['shot'])
+        dataset_shot_groups[key]['accuracy'].append(row['accuracy'])
         if 'eval_time' in row and row['eval_time']:
-            grouped[shot]['eval_time'].append(row['eval_time'])
+            dataset_shot_groups[key]['eval_time'].append(row['eval_time'])
     
-    # Compute statistics
+    # Compute mean and std for each (dataset, shot)
+    shot_results = defaultdict(lambda: {'means': [], 'stds': [], 'times_mean': [], 'times_std': []})
+    
+    for (dataset, shot), values in dataset_shot_groups.items():
+        acc_mean, acc_std = compute_stats(values['accuracy'])
+        time_mean, time_std = compute_stats(values['eval_time'])
+        
+        if acc_mean is not None:
+            shot_results[shot]['means'].append(acc_mean)
+            if acc_std is not None:
+                shot_results[shot]['stds'].append(acc_std)
+        
+        if time_mean is not None:
+            shot_results[shot]['times_mean'].append(time_mean)
+            if time_std is not None:
+                shot_results[shot]['times_std'].append(time_std)
+    
+    # Average the means and stds across datasets
     results = []
-    for shot in sorted(grouped.keys(), key=int):
-        accuracies = grouped[shot]['accuracy']
-        eval_times = grouped[shot]['eval_time']
+    for shot in sorted(shot_results.keys(), key=int):
+        means = shot_results[shot]['means']
+        stds = shot_results[shot]['stds']
+        times_mean = shot_results[shot]['times_mean']
+        times_std = shot_results[shot]['times_std']
         
-        acc_mean, acc_std = compute_stats(accuracies)
-        time_mean, time_std = compute_stats(eval_times)
+        # Average of means
+        avg_mean = np.mean(means) if means else None
+        # Average of stds (not recomputing std!)
+        avg_std = np.mean(stds) if stds else None
+        avg_time_mean = np.mean(times_mean) if times_mean else None
+        avg_time_std = np.mean(times_std) if times_std else None
         
-        if ci95:
-            acc_std = compute_ci95(accuracies)
+        if ci95 and stds:
+            # For CI95, we still use the averaged std
+            avg_std = 1.96 * avg_std / np.sqrt(3)  # 3 seeds per dataset
         
         results.append({
             'shot': shot,
-            'num_evaluations': len(accuracies),
-            'accuracy_mean': f"{acc_mean:.2f}" if acc_mean else 'N/A',
-            'accuracy_std': f"{acc_std:.2f}" if acc_std else 'N/A',
-            'eval_time_mean': f"{time_mean:.2f}" if time_mean else 'N/A',
-            'eval_time_std': f"{time_std:.2f}" if time_std else 'N/A',
+            'num_evaluations': len(means) * 3,  # num_datasets * 3 seeds
+            'accuracy_mean': f"{avg_mean:.2f}" if avg_mean else 'N/A',
+            'accuracy_std': f"{avg_std:.2f}" if avg_std else 'N/A',
+            'eval_time_mean': f"{avg_time_mean:.2f}" if avg_time_mean else 'N/A',
+            'eval_time_std': f"{avg_time_std:.2f}" if avg_time_std else 'N/A',
         })
     
     return results
@@ -105,36 +130,61 @@ def aggregate_few_shot_by_shots(data, ci95=False):
 def aggregate_few_shot_by_dataset(data, ci95=False):
     """
     Aggregate few-shot results grouped by dataset.
-    For each dataset, compute mean ± std across all shots and seeds.
+    For each dataset, first compute std per (dataset, shot), then average across shots.
+    This follows the paper's reproduction methodology.
     """
-    # Group by dataset
-    grouped = defaultdict(lambda: defaultdict(list))
+    # First, group by (dataset, shot) to compute real std across seeds
+    dataset_shot_groups = defaultdict(lambda: defaultdict(list))
     
     for row in data:
-        dataset = row['dataset']
-        grouped[dataset]['accuracy'].append(row['accuracy'])
+        key = (row['dataset'], row['shot'])
+        dataset_shot_groups[key]['accuracy'].append(row['accuracy'])
         if 'eval_time' in row and row['eval_time']:
-            grouped[dataset]['eval_time'].append(row['eval_time'])
+            dataset_shot_groups[key]['eval_time'].append(row['eval_time'])
     
-    # Compute statistics
+    # Compute mean and std for each (dataset, shot)
+    dataset_results = defaultdict(lambda: {'means': [], 'stds': [], 'times_mean': [], 'times_std': []})
+    
+    for (dataset, shot), values in dataset_shot_groups.items():
+        acc_mean, acc_std = compute_stats(values['accuracy'])
+        time_mean, time_std = compute_stats(values['eval_time'])
+        
+        if acc_mean is not None:
+            dataset_results[dataset]['means'].append(acc_mean)
+            if acc_std is not None:
+                dataset_results[dataset]['stds'].append(acc_std)
+        
+        if time_mean is not None:
+            dataset_results[dataset]['times_mean'].append(time_mean)
+            if time_std is not None:
+                dataset_results[dataset]['times_std'].append(time_std)
+    
+    # Average the means and stds across shots
     results = []
-    for dataset in sorted(grouped.keys()):
-        accuracies = grouped[dataset]['accuracy']
-        eval_times = grouped[dataset]['eval_time']
+    for dataset in sorted(dataset_results.keys()):
+        means = dataset_results[dataset]['means']
+        stds = dataset_results[dataset]['stds']
+        times_mean = dataset_results[dataset]['times_mean']
+        times_std = dataset_results[dataset]['times_std']
         
-        acc_mean, acc_std = compute_stats(accuracies)
-        time_mean, time_std = compute_stats(eval_times)
+        # Average of means
+        avg_mean = np.mean(means) if means else None
+        # Average of stds (not recomputing std!)
+        avg_std = np.mean(stds) if stds else None
+        avg_time_mean = np.mean(times_mean) if times_mean else None
+        avg_time_std = np.mean(times_std) if times_std else None
         
-        if ci95:
-            acc_std = compute_ci95(accuracies)
+        if ci95 and stds:
+            # For CI95, we still use the averaged std
+            avg_std = 1.96 * avg_std / np.sqrt(3)  # 3 seeds per shot
         
         results.append({
             'dataset': dataset,
-            'num_evaluations': len(accuracies),
-            'accuracy_mean': f"{acc_mean:.2f}" if acc_mean else 'N/A',
-            'accuracy_std': f"{acc_std:.2f}" if acc_std else 'N/A',
-            'eval_time_mean': f"{time_mean:.2f}" if time_mean else 'N/A',
-            'eval_time_std': f"{time_std:.2f}" if time_std else 'N/A',
+            'num_evaluations': len(means) * 3,  # num_shots * 3 seeds
+            'accuracy_mean': f"{avg_mean:.2f}" if avg_mean else 'N/A',
+            'accuracy_std': f"{avg_std:.2f}" if avg_std else 'N/A',
+            'eval_time_mean': f"{avg_time_mean:.2f}" if avg_time_mean else 'N/A',
+            'eval_time_std': f"{avg_time_std:.2f}" if avg_time_std else 'N/A',
         })
     
     return results
@@ -289,7 +339,9 @@ def main():
     parser.add_argument('--ci95', action='store_true',
                         help='Use 95% confidence interval instead of std')
     parser.add_argument('--output', type=str, default=None,
-                        help='Output CSV file (optional)')
+                        help='Output CSV file (if not specified, auto-generates filename)')
+    parser.add_argument('--no-csv', action='store_true',
+                        help='Do not save to CSV (only display on screen)')
     
     args = parser.parse_args()
     
@@ -335,9 +387,16 @@ def main():
     # Display results
     print_results(results, title)
     
-    # Save if requested
-    if args.output:
-        save_results(results, args.output)
+    # Save to CSV (unless --no-csv is specified)
+    if not args.no_csv:
+        if args.output:
+            output_file = args.output
+        else:
+            # Auto-generate filename
+            ci_suffix = '_ci95' if args.ci95 else ''
+            output_file = f"aggregated_{args.task}_{args.group_by}{ci_suffix}.csv"
+        
+        save_results(results, output_file)
 
 
 if __name__ == '__main__':

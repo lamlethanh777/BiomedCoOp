@@ -1,0 +1,12 @@
+dataset,num_evaluations,accuracy_mean,accuracy_std,eval_time_mean,eval_time_std
+btmri,15,74.95,2.71,N/A,N/A
+busi,15,58.87,3.40,N/A,N/A
+chmnist,15,68.95,1.78,N/A,N/A
+covid,15,74.40,1.46,N/A,N/A
+ctkidney,15,69.43,3.61,N/A,N/A
+dermamnist,15,60.09,2.09,N/A,N/A
+kneexray,15,37.45,1.11,N/A,N/A
+kvasir,15,72.02,1.47,N/A,N/A
+lungcolon,15,84.48,1.63,N/A,N/A
+octmnist,15,57.47,3.11,N/A,N/A
+retina,15,47.79,2.53,N/A,N/A
