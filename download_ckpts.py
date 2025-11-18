@@ -16,7 +16,7 @@ else:
     base_path = f"base2new/train_base/{args.dataset}/shots_16/{args.trainer}/nctx4_cscFalse_ctpend"
     model_name = "model.pth.tar-50"
 
-for seed in [1]:
+for seed in [1, 2, 3]:
     file_path = os.path.join(base_path, f"seed{seed}", "prompt_learner", model_name)
     download_path = hf_hub_download(repo_id="TahaKoleilat/BiomedCoOp",
                     filename=file_path,
