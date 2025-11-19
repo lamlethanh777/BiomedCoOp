@@ -7,12 +7,13 @@
 #   bash scripts/biomedcoop/master_eval.sh [options]
 #
 # Options:
-#   --datasets <list>    Comma-separated list of datasets (default: all)
-#                        Example: --datasets btmri,busi,chmnist
-#   --tasks <list>       Comma-separated tasks to run: few_shot,base2new (default: both)
-#   --shots <list>       Comma-separated shot values for few_shot (default: 1,2,4,8,16)
-#   --data-dir <path>    Path to data directory (default: /kaggle/working/BiomedCoOp/data)
-#   --skip-cleanup       Skip cleanup of datasets and models after evaluation
+#   --datasets <list>         Comma-separated list of datasets (default: all)
+#                             Example: --datasets btmri,busi,chmnist
+#   --tasks <list>            Comma-separated tasks to run: few_shot,base2new (default: both)
+#   --shots <list>            Comma-separated shot values for few_shot (default: 1,2,4,8,16)
+#   --data-dir <path>         Path to data directory (default: /kaggle/working/BiomedCoOp/data)
+#   --skip-dataset-cleanup    Skip cleanup of datasets after evaluation
+#   --skip-model-cleanup      Skip cleanup of models after evaluation
 #
 # Examples:
 #   # Run all evaluations on all datasets
@@ -31,7 +32,8 @@ TASKS=(few_shot base2new)
 SHOTS=(1 2 4 8 16)
 DATA_DIR="/workspace/BiomedCoOp/data"
 WORK_DIR="/workspace/BiomedCoOp"
-SKIP_CLEANUP=false
+SKIP_DATASET_CLEANUP=false
+SKIP_MODEL_CLEANUP=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -52,19 +54,24 @@ while [[ $# -gt 0 ]]; do
             DATA_DIR="$2"
             shift 2
             ;;
-        --skip-cleanup)
-            SKIP_CLEANUP=true
+        --skip-dataset-cleanup)
+            SKIP_DATASET_CLEANUP=true
+            shift
+            ;;
+        --skip-model-cleanup)
+            SKIP_MODEL_CLEANUP=true
             shift
             ;;
         --help)
             echo "Usage: bash scripts/biomedcoop/master_eval.sh [options]"
             echo ""
             echo "Options:"
-            echo "  --datasets <list>    Comma-separated list of datasets"
-            echo "  --tasks <list>       Tasks: few_shot,base2new (default: both)"
-            echo "  --shots <list>       Shot values for few_shot (default: 1,2,4,8,16)"
-            echo "  --data-dir <path>    Path to data directory"
-            echo "  --skip-cleanup       Skip cleanup after evaluation"
+            echo "  --datasets <list>         Comma-separated list of datasets"
+            echo "  --tasks <list>            Tasks: few_shot,base2new (default: both)"
+            echo "  --shots <list>            Shot values for few_shot (default: 1,2,4,8,16)"
+            echo "  --data-dir <path>         Path to data directory"
+            echo "  --skip-dataset-cleanup    Skip cleanup of datasets after evaluation"
+            echo "  --skip-model-cleanup      Skip cleanup of models after evaluation"
             echo ""
             echo "Available datasets:"
             echo "  btmri, busi, chmnist, covid, ctkidney, dermamnist,"
@@ -123,7 +130,8 @@ if [[ " ${TASKS[@]} " =~ " few_shot " ]]; then
 fi
 echo "Data directory: ${DATA_DIR}"
 echo "Working directory: ${WORK_DIR}"
-echo "Skip cleanup: ${SKIP_CLEANUP}"
+echo "Skip dataset cleanup: ${SKIP_DATASET_CLEANUP}"
+echo "Skip model cleanup: ${SKIP_MODEL_CLEANUP}"
 echo "========================================"
 echo ""
 
@@ -174,7 +182,7 @@ for dataset in "${DATASETS[@]}"; do
             echo "✓ Completed ${k}-shot evaluation in ${SHOT_TIME}s"
             
             # Cleanup models if not skipping
-            if [ "$SKIP_CLEANUP" = false ]; then
+            if [ "$SKIP_MODEL_CLEANUP" = false ]; then
                 echo "Cleaning up models for ${k}-shot..."
                 rm -rf ${WORK_DIR}/few_shot
                 mkdir -p ${WORK_DIR}/few_shot
@@ -200,7 +208,7 @@ for dataset in "${DATASETS[@]}"; do
         echo "✓ Completed Base2New evaluation in ${BASE2NEW_TIME}s"
         
         # Cleanup base2new models if not skipping
-        if [ "$SKIP_CLEANUP" = false ]; then
+        if [ "$SKIP_MODEL_CLEANUP" = false ]; then
             echo "Cleaning up base2new models..."
             rm -rf ${WORK_DIR}/base2new
             mkdir -p ${WORK_DIR}/base2new
@@ -209,7 +217,7 @@ for dataset in "${DATASETS[@]}"; do
     fi
     
     # Step 4: Cleanup dataset if not skipping
-    if [ "$SKIP_CLEANUP" = false ]; then
+    if [ "$SKIP_DATASET_CLEANUP" = false ]; then
         echo "Step 4: Dataset Cleanup"
         echo "----------------------------------------"
         echo "Removing ${dataset_folder} dataset..."
