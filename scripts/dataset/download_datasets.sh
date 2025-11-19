@@ -62,15 +62,18 @@ download_and_unpack() {
     return 1
   fi
 
-  echo "Unzipping $zipfile -> $OUTDIR/$OUTDIR"
+  local extract_dir="$OUTDIR/${name}"
+  mkdir -p "$extract_dir"
+  
+  echo "Unzipping $zipfile -> $extract_dir"
   if command -v unzip >/dev/null 2>&1; then
-    unzip -o "$zipfile" -d "$OUTDIR/$OUTDIR"
+    unzip -o "$zipfile" -d "$extract_dir"
   else
     # Fallback to python unzip if `unzip` is not available
     python - <<PY
 import zipfile,sys
 zf=zipfile.ZipFile(r'${zipfile}')
-zf.extractall(r'${OUTDIR}/${OUTDIR}')
+zf.extractall(r'${extract_dir}')
 zf.close()
 PY
   fi
