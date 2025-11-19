@@ -29,8 +29,8 @@ ALL_DATASETS=(btmri busi chmnist covid ctkidney dermamnist kneexray kvasir lungc
 DATASETS=()
 TASKS=(few_shot base2new)
 SHOTS=(1 2 4 8 16)
-DATA_DIR="/workspace/BiomedCoOp/data"
-WORK_DIR="/workspace/BiomedCoOp"
+DATA_DIR="/kaggle/working/BiomedCoOp/data"
+WORK_DIR="/kaggle/working/BiomedCoOp"
 SKIP_CLEANUP=false
 
 # Parse command line arguments
