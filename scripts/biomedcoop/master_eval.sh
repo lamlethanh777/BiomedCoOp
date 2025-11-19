@@ -2,6 +2,9 @@
 
 # Master Evaluation Script
 # This script runs evaluations across multiple datasets with timing and CSV logging
+
+# Trap SIGINT (Ctrl+C) and SIGTERM for graceful shutdown
+trap 'echo ""; echo "Interrupted! Cleaning up..."; exit 130' INT TERM
 #
 # Usage:
 #   bash scripts/biomedcoop/master_eval.sh [options]
