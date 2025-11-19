@@ -3,8 +3,28 @@
 # Master Evaluation Script
 # This script runs evaluations across multiple datasets with timing and CSV logging
 
+# Store child PID for cleanup
+CHILD_PID=""
+
 # Trap SIGINT (Ctrl+C) and SIGTERM for graceful shutdown
-trap 'echo ""; echo "Interrupted! Cleaning up..."; exit 130' INT TERM
+cleanup() {
+    echo ""
+    echo "========================================"
+    echo "Interrupted! Cleaning up..."
+    echo "========================================"
+    
+    # Kill child process if running
+    if [ -n "$CHILD_PID" ]; then
+        echo "Stopping child process (PID: $CHILD_PID)..."
+        kill -TERM "$CHILD_PID" 2>/dev/null
+        wait "$CHILD_PID" 2>/dev/null
+    fi
+    
+    echo "Cleanup complete. Exiting."
+    exit 130
+}
+
+trap cleanup INT TERM
 #
 # Usage:
 #   bash scripts/biomedcoop/master_eval.sh [options]
@@ -178,7 +198,10 @@ for dataset in "${DATASETS[@]}"; do
             echo "Running ${k}-shot evaluation for ${dataset}..."
             SHOT_START=$(date +%s)
             
-            bash ${WORK_DIR}/scripts/biomedcoop/eval_fewshot.sh ${DATA_DIR} ${dataset} ${k}
+            bash ${WORK_DIR}/scripts/biomedcoop/eval_fewshot.sh ${DATA_DIR} ${dataset} ${k} &
+            CHILD_PID=$!
+            wait $CHILD_PID
+            CHILD_PID=""
             
             SHOT_END=$(date +%s)
             SHOT_TIME=$((SHOT_END - SHOT_START))
@@ -204,7 +227,10 @@ for dataset in "${DATASETS[@]}"; do
         
         BASE2NEW_START=$(date +%s)
         
-        bash ${WORK_DIR}/scripts/biomedcoop/eval_base2new.sh ${DATA_DIR} ${dataset}
+        bash ${WORK_DIR}/scripts/biomedcoop/eval_base2new.sh ${DATA_DIR} ${dataset} &
+        CHILD_PID=$!
+        wait $CHILD_PID
+        CHILD_PID=""
         
         BASE2NEW_END=$(date +%s)
         BASE2NEW_TIME=$((BASE2NEW_END - BASE2NEW_START))
