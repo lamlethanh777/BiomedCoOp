@@ -110,7 +110,11 @@ def log_few_shot_result(args, metrics):
         
         writer.writerow(row)
     
-    print(f"✓ Logged to {csv_file}: {args.dataset}, {args.shot}-shot, seed {args.seed}, acc={metrics.get('accuracy', 'N/A'):.2f}%")
+    acc_val = metrics.get('accuracy', 'N/A')
+    if isinstance(acc_val, (int, float)):
+        print(f"✓ Logged to {csv_file}: {args.dataset}, {args.shot}-shot, seed {args.seed}, acc={acc_val:.2f}%")
+    else:
+        print(f"✓ Logged to {csv_file}: {args.dataset}, {args.shot}-shot, seed {args.seed}, acc={acc_val}")
 
 
 def log_base2new_result(args, metrics):
