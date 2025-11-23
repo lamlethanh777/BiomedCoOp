@@ -1,5 +1,9 @@
 import argparse
 import torch
+import time
+import csv
+import os
+from datetime import datetime
 
 from dassl.utils import setup_logger, set_random_seed, collect_env_info
 from dassl.config import get_cfg_default
@@ -86,6 +90,66 @@ def reset_cfg(cfg, args):
     if args.head:
         cfg.MODEL.HEAD.NAME = args.head
 
+
+
+def save_training_results(cfg, args, training_duration):
+    """
+    Save training results to CSV file in train-results directory.
+    """
+    # Create train-results directory if it doesn't exist
+    results_dir = "train-results"
+    os.makedirs(results_dir, exist_ok=True)
+    
+    # Prepare CSV file path
+    csv_filename = os.path.join(results_dir, "training_times.csv")
+    
+    # Check if file exists to determine if we need to write headers
+    file_exists = os.path.isfile(csv_filename)
+    
+    # Prepare data row
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    hours = int(training_duration // 3600)
+    minutes = int((training_duration % 3600) // 60)
+    seconds = int(training_duration % 60)
+    formatted_duration = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    # Extract key training information
+    dataset_name = cfg.DATASET.NAME if hasattr(cfg.DATASET, 'NAME') else 'Unknown'
+    trainer_name = cfg.TRAINER.NAME if hasattr(cfg.TRAINER, 'NAME') else 'Unknown'
+    max_epoch = cfg.OPTIM.MAX_EPOCH if hasattr(cfg.OPTIM, 'MAX_EPOCH') else 'Unknown'
+    seed = cfg.SEED if hasattr(cfg, 'SEED') else 'Unknown'
+    num_shots = cfg.DATASET.NUM_SHOTS if hasattr(cfg.DATASET, 'NUM_SHOTS') else 'Unknown'
+    output_dir = cfg.OUTPUT_DIR if hasattr(cfg, 'OUTPUT_DIR') else 'Unknown'
+    
+    # Write to CSV
+    with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
+        fieldnames = [
+            'timestamp', 'dataset', 'trainer', 'num_shots', 'max_epoch', 
+            'seed', 'duration_seconds', 'duration_formatted', 'output_dir'
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        # Write header if file is new
+        if not file_exists:
+            writer.writeheader()
+        
+        # Write data row
+        writer.writerow({
+            'timestamp': timestamp,
+            'dataset': dataset_name,
+            'trainer': trainer_name,
+            'num_shots': num_shots,
+            'max_epoch': max_epoch,
+            'seed': seed,
+            'duration_seconds': f"{training_duration:.2f}",
+            'duration_formatted': formatted_duration,
+            'output_dir': output_dir
+        })
+    
+    print(f"\n{'='*60}")
+    print(f"Training completed in: {formatted_duration} ({training_duration:.2f} seconds)")
+    print(f"Results saved to: {csv_filename}")
+    print(f"{'='*60}\n")
 
 
 def extend_cfg(cfg):
@@ -195,7 +259,16 @@ def main(args):
         return
 
     if not args.no_train:
+        # Track training time
+        train_start_time = time.time()
         trainer.train()
+        train_end_time = time.time()
+        
+        # Calculate training duration
+        training_duration = train_end_time - train_start_time
+        
+        # Save training results to CSV
+        save_training_results(cfg, args, training_duration)
 
 
 if __name__ == "__main__":
